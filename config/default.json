@@ -1,0 +1,3 @@
+{
+     "mongoURI" : "mongodb+srv://mighty_mk:test123@cluster0.lkojm.mongodb.net/Park_Portal_Core?retryWrites=true&w=majority"  
+}

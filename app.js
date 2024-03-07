@@ -112,75 +112,37 @@ app.post("/oldvalue", async (req, res) => {
 //     });
 // });
 
-// app.get("/read/page", async (req, res) => {
-//   const page = parseInt(req.params.page) || 1;
-//   const limit = Math.min(parseInt(req.query.limit) || 10); 
-//   await RoleDB.find()
-//     .then((result) => {
-//     console.log(result, "then");
-//       res.json(result);
-//     })
-
-//   const skip = (page - 1) * limit;
-
-//   try {
-//     const roles = await RoleDB.find()
-//       .skip(skip)
-//       .limit(limit)
-//       .exec();
-
-//     res.json(roles);
-//   } catch (error) {
-//     console.error(error);
-//     res.status(500).send("Internal Server Error");
-//   }
-// });
-
-
-// app.get("/pages", async (req, res) => {
-  
-//   try{
-//     let {page,size} = req.query;
-//     if(!page){
-//       page =1;
-//     }
-//     if(!size){
-//       size =5;
-//     }
-//     const limit = parseInt(size);
-//     const skip = (page-1)
-//     const pages = await userrole.find({},{},{limit: limit,skip: skip});
-//   }
-//     catch (error) {
-//       console.error(error);
-//       res.status(500).send("Internal Server Error");
-//     }
-//   });
-  
-
-//read final
 
 app.get("/read", async (req, res) => {
-  
   const { page = 1, pageSize = 10, sortField = "RoleCode", sortOrder = "asc" } = req.query;
 
-  const skip = (page - 1) * pageSize;
+  // Validate and sanitize page and pageSize values
+  const validatedPage = Math.max(1, parseInt(page));
+  const validatedPageSize = [10, 20, 50, 'all'].includes(parseInt(pageSize)) ? parseInt(pageSize) : 10;
+
+  const skip = (validatedPage - 1) * validatedPageSize;
 
   const sort = {};
   sort[sortField] = sortOrder === "asc" ? 1 : -1;
 
   try {
-    const roles = await RoleDB.find()
-      .sort(sort)
-      .skip(parseInt(skip))
-      .limit(parseInt(pageSize));
+    let rolesQuery = RoleDB.find().sort(sort);
 
-    const totalRolesCount = await RoleDB.countDocuments();
+    // If pageSize is not 'all', apply pagination
+    if (validatedPageSize !== 'all') {
+      rolesQuery = rolesQuery.skip(skip).limit(validatedPageSize);
+    }
+
+    const role = await rolesQuery.exec();
+
+    // If pageSize is 'all', retrieve all roles
+    const totalRolesCount = validatedPageSize === 'all' ? role.length : await RoleDB.countDocuments();
 
     res.json({
-      roles,
-      totalPages: Math.ceil(totalRolesCount / pageSize),
-      currentPage: parseInt(page),
+      role,
+      totalPages: Math.ceil(totalRolesCount / validatedPageSize),
+      currentPage: validatedPage,
+      pageSize: validatedPageSize,
     });
   } catch (error) {
     console.error(error);
